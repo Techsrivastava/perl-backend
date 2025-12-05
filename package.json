@@ -4,13 +4,18 @@
   "description": "Backend API for University Management System",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "NODE_ENV=production node server-production.js",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "prod": "NODE_ENV=production node server-production.js",
+    "build": "echo 'No build step required for this Node.js app'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:admin": "node seedAdmin.js",
     "lint": "echo 'No linting configured'",
     "check-env": "node -e \"console.log('Environment check:', process.env.NODE_ENV || 'not set')\"",
-    "troubleshoot": "node troubleshoot.js"
+    "troubleshoot": "node troubleshoot.js",
+    "test-db": "node test-db.js",
+    "fix-env": "node fix-env.js",
+    "setup": "npm install && echo 'Setup complete. Copy .env.example to .env and configure your variables.'"
   },
   "keywords": [
     "university",

@@ -659,9 +659,148 @@ logger.warn(`Failed OTP attempt for ${email}`);
 
 ---
 
-## 🧪 Testing Scripts
+## 🔧 Environment Setup & Troubleshooting
 
-Run the included test scripts to verify integration:
+### Quick Setup
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Setup environment file
+npm run fix-env
+# OR manually: cp .env.example .env
+
+# 3. Edit .env with your actual values
+# (Required: MONGODB_URI, JWT_SECRET)
+
+# 4. Test database connection
+npm run test-db
+
+# 5. Run troubleshooting
+npm run troubleshoot
+
+# 6. Start server
+npm run dev  # development
+npm start    # production
+```
+
+### Environment Variables
+
+**Required Variables:**
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
+JWT_SECRET=your_super_secure_jwt_secret_here
+```
+
+**Optional Variables:**
+```env
+PORT=5000
+NODE_ENV=development
+MAX_FILE_SIZE=5242880
+OTP_EXPIRY_MINUTES=10
+```
+
+### Common Issues & Solutions
+
+#### ❌ "MongoDB Connection Error: The `uri` parameter must be a string, got 'undefined'"
+
+**Solutions:**
+1. **Check .env file exists:**
+   ```bash
+   npm run fix-env
+   ```
+
+2. **Verify MONGODB_URI format:**
+   ```bash
+   npm run test-db
+   ```
+
+3. **Manual .env setup:**
+   ```bash
+   # Copy example file
+   cp .env.example .env
+
+   # Edit with your values
+   # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
+   ```
+
+#### ❌ "npm warn config production Use `--omit=dev` instead"
+
+**Solution:** This is just a warning, doesn't affect functionality. The app will work fine.
+
+#### ❌ "Authentication failed" (MongoDB)
+
+**Solutions:**
+- Check username/password in MongoDB Atlas
+- Verify IP whitelist includes your IP
+- Ensure database user has read/write permissions
+
+#### ❌ "getaddrinfo ENOTFOUND"
+
+**Solutions:**
+- Check internet connection
+- Verify MongoDB Atlas cluster URL
+- Ensure cluster is running
+
+### GitHub Setup
+
+**Important:** Never commit sensitive data to GitHub!
+
+1. **.env is already in .gitignore** ✅
+2. **Use .env.example as template:**
+   ```bash
+   # Copy to .env and fill with real values
+   cp .env.example .env
+   ```
+3. **Before pushing to GitHub:**
+   - Ensure .env is not tracked: `git status`
+   - If accidentally added: `git rm --cached .env`
+
+### Available Scripts
+
+```bash
+npm run setup        # Install deps and setup instructions
+npm run dev          # Start development server (nodemon)
+npm start            # Start production server
+npm run test-db      # Test MongoDB connection
+npm run troubleshoot # Full system check
+npm run fix-env      # Create/fix .env file
+npm run check-env    # Check NODE_ENV setting
+```
+
+### Production Deployment
+
+```bash
+# 1. Set production environment
+echo "NODE_ENV=production" >> .env
+
+# 2. Use production MongoDB URI
+# Edit .env with production database URL
+
+# 3. Start production server
+npm start
+```
+
+### Health Check
+
+Once server is running, check health:
+```bash
+curl http://localhost:5000/health
+```
+
+Expected response:
+```json
+{
+  "status": "OK",
+  "environment": "production",
+  "uptime": 123.456
+}
+```
+
+---
+
+## 🧪 Testing Scripts
 
 ```bash
 # Complete integration test

@@ -7,7 +7,17 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-require('dotenv').config();
+const path = require('path');
+
+// Load environment variables with explicit path
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// Debug environment loading
+console.log('🔧 Environment Loading Debug:');
+console.log(`  Current Directory: ${__dirname}`);
+console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`  MONGODB_URI exists: ${!!process.env.MONGODB_URI}`);
+console.log(`  JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
 
 // Validate critical environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
@@ -15,9 +25,12 @@ const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
   console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('💡 Make sure your .env file exists and contains the required variables.');
+  console.error('💡 Copy .env.example to .env and fill in your values.');
   process.exit(1);
 }
 
+console.log('✅ All required environment variables found');
 console.log('🚀 Starting University Management System API...');
 console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔌 Port: ${process.env.PORT || 5000}`);
