@@ -1,129 +1,217 @@
-# 🚀 Production Deployment Guide
+# 🚀 Deployment Guide
 
-## Prerequisites
+## Environment Variables Setup
 
-- Node.js v14+
-- MongoDB Atlas account (or local MongoDB)
-- Linux/Windows server
+Your application needs these environment variables to run:
 
-## Quick Start Commands
-
+### Required Variables
 ```bash
-# 1. Navigate to backend directory
-cd "d:\Flutter Projects\Projects\perl app\Perl_Backend"
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
+JWT_SECRET=your_super_secure_jwt_secret_key_here_minimum_32_characters
+```
 
-# 2. Install dependencies
-npm install
+### Optional Variables (with defaults)
+```bash
+PORT=5000
+NODE_ENV=production
+JWT_EXPIRE=7d
+MAX_FILE_SIZE=5242880
+OTP_EXPIRY_MINUTES=10
+```
 
-# 3. Run troubleshooting (recommended)
-npm run troubleshoot
+## Deployment Options
 
-# 4. Start production server
-npm start
+### 1. Local Development
+```bash
+# Copy environment file
+cp .env.example .env
 
-# Alternative: Start development server
+# Edit .env with your values
+# MONGODB_URI=your_mongodb_uri
+# JWT_SECRET=your_jwt_secret
+
+# Start development server
 npm run dev
 ```
 
-## Environment Configuration
+### 2. Local Production
+```bash
+# Set environment variables
+export MONGODB_URI="your_mongodb_uri"
+export JWT_SECRET="your_jwt_secret"
+export NODE_ENV=production
 
-Your `.env` file should look like this:
-
-```env
-# Server Configuration
-PORT=5000
-NODE_ENV=production
-
-# Database (MongoDB Atlas recommended)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/university_management
-
-# JWT Secret (CHANGE THIS!)
-JWT_SECRET=your_super_secure_jwt_secret_key_here
-
-# File Upload
-MAX_FILE_SIZE=5242880
-UPLOAD_PATH=./uploads
+# Start production server
+npm start
 ```
 
-## Troubleshooting Common Issues
-
-### Issue: "npm warn config production Use `--omit=dev` instead"
-**Solution**: This is just a warning, doesn't affect functionality. The app will still work.
-
-### Issue: "MongoDB Connection Error"
-**Solutions**:
-1. Check your `MONGODB_URI` in `.env`
-2. Ensure MongoDB Atlas IP whitelist includes your IP
-3. Verify username/password in connection string
-
-### Issue: "Port already in use"
-**Solution**:
+### 3. Docker Deployment
 ```bash
-# Find process using port 5000
-netstat -ano | findstr :5000
+# Build Docker image
+npm run docker:build
 
-# Kill the process (replace PID)
-taskkill /PID <PID> /F
+# Run with environment file
+npm run docker:run
+
+# Or use docker-compose (includes MongoDB)
+docker-compose up -d
 ```
 
-### Issue: "Missing environment variables"
-**Solution**:
-```bash
-# Run environment check
-npm run check-env
+### 4. Cloud Platforms
 
-# Edit .env file with proper values
+#### Heroku
+```bash
+# Set environment variables in Heroku dashboard:
+# MONGODB_URI → your MongoDB Atlas URI
+# JWT_SECRET → your secure JWT secret
+# NODE_ENV → production
+
+# Deploy
+git push heroku main
 ```
 
-## Production Checklist
+#### Railway
+```bash
+# Set environment variables in Railway dashboard
+# MONGODB_URI = your_mongodb_uri
+# JWT_SECRET = your_jwt_secret
+# NODE_ENV = production
 
-- [ ] `NODE_ENV=production` in `.env`
-- [ ] Strong `JWT_SECRET` set
-- [ ] MongoDB Atlas connection working
-- [ ] Port 5000 available
-- [ ] `uploads/` directory exists
-- [ ] All dependencies installed (`npm install`)
+# Deploy from GitHub
+```
 
-## API Testing
+#### Render
+```bash
+# Set environment variables in Render dashboard
+# MONGODB_URI = mongodb+srv://...
+# JWT_SECRET = your_secure_secret
+# NODE_ENV = production
 
-Once server is running, test these endpoints:
+# Build Command: npm install
+# Start Command: npm start
+```
+
+#### DigitalOcean App Platform
+```bash
+# Set environment variables in DO dashboard
+# Same variables as above
+
+# Deploy from GitHub
+```
+
+#### AWS EC2
+```bash
+# On your EC2 instance:
+sudo apt update
+sudo apt install nodejs npm
+
+# Clone your repo
+git clone your-repo-url
+cd university-backend
+
+# Install PM2 for production
+sudo npm install -g pm2
+
+# Set environment variables
+sudo nano .env
+# Add your variables
+
+# Start with PM2
+pm2 start ecosystem.config.js
+```
+
+#### Vercel (Serverless)
+```bash
+# Set environment variables in Vercel dashboard
+# MONGODB_URI = your_mongodb_uri
+# JWT_SECRET = your_jwt_secret
+
+# Create vercel.json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server-production.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server-production.js"
+    }
+  ]
+}
+```
+
+## Health Check
+
+Once deployed, verify your deployment:
 
 ```bash
-# Health check
-curl http://localhost:5000/health
+# Health endpoint
+curl https://your-domain.com/health
 
-# API info
-curl http://localhost:5000/
+# API root
+curl https://your-domain.com/
 
-# Test OTP send (replace with real email)
-curl -X POST http://localhost:5000/api/auth/send-otp \
+# Test OTP endpoint
+curl -X POST https://your-domain.com/api/auth/send-otp \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com"}'
 ```
 
-## Logs and Monitoring
+## Troubleshooting
 
-- Server logs appear in console
-- OTP codes logged in development mode
-- Health endpoint: `GET /health`
-- Environment info in startup logs
+### Environment Variables Not Loading
+```bash
+# Check if variables are set
+npm run deploy:check
 
-## Security Notes
+# Test database connection
+npm run test-db
+```
 
-- JWT tokens expire in 7 days
-- OTP codes valid for 10 minutes
-- Passwords hashed with bcrypt
-- Helmet security headers enabled
-- CORS configured for production
+### MongoDB Connection Issues
+- Verify MongoDB Atlas IP whitelist
+- Check username/password
+- Ensure cluster is running
+- Test connection with `npm run test-db`
 
-## Performance Tips
+### Port Issues
+- Default port is 5000
+- Change with `PORT` environment variable
+- Ensure port is not blocked by firewall
 
-- Use MongoDB Atlas for production
-- Enable compression (already configured)
-- Set up PM2 for process management (optional)
-- Monitor memory usage
-- Set up log rotation
+### Memory Issues
+- Monitor with `pm2 monit`
+- Increase server memory if needed
+- Use `--max-old-space-size=4096` for Node.js
+
+## Security Checklist
+
+- [ ] JWT_SECRET is long and random
+- [ ] MongoDB URI uses secure connection (mongodb+srv://)
+- [ ] IP whitelist configured in MongoDB Atlas
+- [ ] Environment variables not logged
+- [ ] HTTPS enabled in production
+- [ ] Rate limiting configured (optional)
+- [ ] CORS properly configured
+
+## Monitoring
+
+- Health check endpoint: `GET /health`
+- Logs: Check platform logs or PM2 logs
+- Database: Monitor MongoDB Atlas dashboard
+- Performance: Use PM2 monitoring
+
+## Backup Strategy
+
+1. **Database**: MongoDB Atlas automatic backups
+2. **Code**: Git version control
+3. **Environment**: Document all environment variables
+4. **Assets**: Backup uploaded files regularly
 
 ---
 
-**🎉 Your production backend is ready!**
+**🎉 Your backend is now deployment-ready!**

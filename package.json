@@ -6,16 +6,22 @@
   "scripts": {
     "start": "NODE_ENV=production node server-production.js",
     "dev": "NODE_ENV=development nodemon server.js",
-    "prod": "NODE_ENV=production node server-production.js",
     "build": "echo 'No build step required for this Node.js app'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:admin": "node seedAdmin.js",
     "lint": "echo 'No linting configured'",
     "check-env": "node -e \"console.log('Environment check:', process.env.NODE_ENV || 'not set')\"",
     "troubleshoot": "node troubleshoot.js",
-    "test-db": "node test-db.js",
+    "test-health": "node test-health.js",
     "fix-env": "node fix-env.js",
-    "setup": "npm install && echo 'Setup complete. Copy .env.example to .env and configure your variables.'"
+    "setup": "npm install && echo 'Setup complete. Copy .env.example to .env and configure your variables.'",
+    "docker:build": "docker build -t university-backend .",
+    "docker:run": "docker run -p 5000:5000 --env-file .env university-backend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app",
+    "deploy:check": "node -e \"console.log('Deployment Check:'); console.log('- NODE_ENV:', process.env.NODE_ENV); console.log('- PORT:', process.env.PORT); console.log('- MongoDB URI exists:', !!process.env.MONGODB_URI); console.log('- JWT Secret exists:', !!process.env.JWT_SECRET);\"",
+    "prod:check": "node check-production.js"
   },
   "keywords": [
     "university",

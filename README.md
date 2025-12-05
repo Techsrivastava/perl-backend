@@ -767,6 +767,11 @@ npm run test-db      # Test MongoDB connection
 npm run troubleshoot # Full system check
 npm run fix-env      # Create/fix .env file
 npm run check-env    # Check NODE_ENV setting
+npm run prod:check   # Check production environment setup
+npm run docker:build # Build Docker image
+npm run docker:run   # Run Docker container
+npm run docker:up    # Start with docker-compose
+npm run docker:logs  # View Docker logs
 ```
 
 ### Production Deployment
