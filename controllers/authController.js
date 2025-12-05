@@ -68,6 +68,41 @@ class AuthController {
       next(error);
     }
   }
+
+  // @desc    Send OTP
+  // @route   POST /api/auth/send-otp
+  // @access  Public
+  async sendOTP(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.sendOTP(email);
+
+      res.json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // @desc    Verify OTP and login
+  // @route   POST /api/auth/verify-otp
+  // @access  Public
+  async verifyOTP(req, res, next) {
+    try {
+      const { email, otp } = req.body;
+      const result = await authService.verifyOTP(email, otp);
+
+      res.json({
+        success: true,
+        message: 'OTP verified successfully',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();

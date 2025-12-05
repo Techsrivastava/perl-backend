@@ -147,6 +147,68 @@ class AuthService {
 
     return true;
   }
+
+  // Send OTP for email verification
+  async sendOTP(email) {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error('User not found with this email');
+    }
+
+    if (!user.isActive) {
+      throw new Error('Account is deactivated');
+    }
+
+    // Generate OTP
+    const otp = user.generateOTP();
+    await user.save();
+
+    // TODO: Send OTP via email service
+    // For now, we'll log it (in production, integrate with email service)
+    console.log(`OTP for ${email}: ${otp}`);
+
+    return {
+      message: 'OTP sent successfully',
+      email: email,
+    };
+  }
+
+  // Verify OTP and login
+  async verifyOTP(email, otp) {
+    const user = await User.findOne({ email }).select('+otp +otpExpires');
+    if (!user) {
+      throw new Error('User not found with this email');
+    }
+
+    if (!user.isActive) {
+      throw new Error('Account is deactivated');
+    }
+
+    // Verify OTP
+    if (!user.verifyOTP(otp)) {
+      throw new Error('Invalid or expired OTP');
+    }
+
+    // Clear OTP after successful verification
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    user.lastLogin = Date.now();
+    await user.save();
+
+    const token = this.generateToken(user._id);
+
+    return {
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        universityId: user.universityId,
+        consultancyId: user.consultancyId,
+      },
+    };
+  }
 }
 
 module.exports = new AuthService();

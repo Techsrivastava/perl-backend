@@ -210,6 +210,8 @@ All API responses follow this format:
 
 ## 🔐 Authentication
 
+The system supports both traditional password-based login and modern OTP-based authentication.
+
 ### Register
 
 **POST** `/api/auth/register`
@@ -246,7 +248,64 @@ All API responses follow this format:
 }
 ```
 
-### Login
+### Send OTP (Email Verification)
+
+**POST** `/api/auth/send-otp`
+
+Send a 4-digit OTP to the user's email for verification.
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully"
+}
+```
+
+**Notes:**
+- OTP is valid for 10 minutes
+- Check server console for OTP value (in development)
+- In production, integrate with email service (SendGrid, Nodemailer, etc.)
+
+### Verify OTP & Login
+
+**POST** `/api/auth/verify-otp`
+
+Verify the OTP and authenticate the user.
+
+```json
+{
+  "email": "user@example.com",
+  "otp": "1234"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "...",
+      "email": "user@example.com",
+      "name": "User Name",
+      "role": "university",
+      "universityId": "...",
+      "consultancyId": "..."
+    }
+  }
+}
+```
+
+### Traditional Login
 
 **POST** `/api/auth/login`
 
@@ -277,9 +336,345 @@ Authorization: Bearer <token>
 }
 ```
 
+### OTP Authentication Flow
+
+```mermaid
+graph TD
+    A[User enters email] --> B[App calls /auth/send-otp]
+    B --> C[Backend generates 4-digit OTP]
+    C --> D[OTP stored in database with expiry]
+    D --> E[OTP sent to user's email]
+    E --> F[User receives OTP]
+    F --> G[User enters OTP in app]
+    G --> H[App calls /auth/verify-otp]
+    H --> I{OTP Valid?}
+    I -->|Yes| J[JWT Token generated]
+    I -->|No| K[Error: Invalid/Expired OTP]
+    J --> L[User authenticated]
+    K --> M[Retry or Resend OTP]
+```
+
 ---
 
-## 🏫 Universities API
+## 🔧 Micro-Level Integration Details
+
+### Backend Architecture Flow
+
+#### 1. User Model Extensions
+```javascript
+// models/User.js - OTP Fields Added
+{
+  otp: {
+    type: String,
+    select: false, // Hidden by default
+  },
+  otpExpires: {
+    type: Date,
+    select: false, // Hidden by default
+  }
+}
+
+// Instance Methods Added
+userSchema.methods.generateOTP() // Returns 4-digit OTP
+userSchema.methods.verifyOTP(otp) // Returns boolean
+```
+
+#### 2. Service Layer (authService.js)
+```javascript
+// OTP Generation & Verification Logic
+async sendOTP(email) {
+  // 1. Find user
+  // 2. Generate OTP using user.generateOTP()
+  // 3. Save to database
+  // 4. Log OTP (development) / Send email (production)
+  // 5. Return success response
+}
+
+async verifyOTP(email, otp) {
+  // 1. Find user with OTP fields selected
+  // 2. Verify OTP using user.verifyOTP(otp)
+  // 3. Clear OTP fields after successful verification
+  // 4. Generate JWT token
+  // 5. Return token and user data
+}
+```
+
+#### 3. Controller Layer (authController.js)
+```javascript
+// Request/Response Handling
+async sendOTP(req, res, next) {
+  const { email } = req.body;
+  const result = await authService.sendOTP(email);
+  res.json({ success: true, message: result.message });
+}
+
+async verifyOTP(req, res, next) {
+  const { email, otp } = req.body;
+  const result = await authService.verifyOTP(email, otp);
+  res.json({
+    success: true,
+    message: 'OTP verified successfully',
+    data: result
+  });
+}
+```
+
+#### 4. Route Layer (auth.js)
+```javascript
+// Validation & Routing
+router.post('/send-otp', [
+  body('email').isEmail().withMessage('Valid email required'),
+], validate, authController.sendOTP);
+
+router.post('/verify-otp', [
+  body('email').isEmail().withMessage('Valid email required'),
+  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits'),
+], validate, authController.verifyOTP);
+```
+
+### Frontend Integration Points
+
+#### 1. API Service (api_service.dart)
+```dart
+// Base Configuration
+const String baseUrl = 'http://localhost:5000/api';
+
+// HTTP Methods
+Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> data)
+Future<Map<String, dynamic>> get(String endpoint)
+```
+
+#### 2. Auth Service (auth_api_service.dart)
+```dart
+// OTP Methods
+Future<Map<String, dynamic>> sendOTP(String email) async {
+  return await ApiService.post('/auth/send-otp', {'email': email});
+}
+
+Future<Map<String, dynamic>> verifyOTP(String email, String otp) async {
+  return await ApiService.post('/auth/verify-otp', {'email': email, 'otp': otp});
+}
+```
+
+#### 3. UI Integration (login_screen.dart & verification_screen.dart)
+```dart
+// Login Screen
+void _handleLogin() async {
+  final result = await AuthApiService.sendOTP(email);
+  if (result['success']) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => VerificationScreen(email: email),
+    ));
+  }
+}
+
+// Verification Screen
+void _handleVerification() async {
+  final result = await AuthApiService.verifyOTP(widget.email, otp);
+  if (result['success']) {
+    // Navigate to main app with JWT token
+    final token = result['data']['token'];
+    await ApiService.setToken(token);
+  }
+}
+```
+
+### Database Schema Updates
+
+#### User Collection Changes
+```javascript
+// Before OTP Integration
+{
+  email: "user@example.com",
+  password: "hashed_password",
+  role: "university",
+  // ... other fields
+}
+
+// After OTP Integration
+{
+  email: "user@example.com",
+  password: "hashed_password",
+  role: "university",
+  otp: "1234",           // 4-digit code (hidden by default)
+  otpExpires: ISODate(), // Expiry timestamp (hidden by default)
+  // ... other fields
+}
+```
+
+### Security Considerations
+
+#### 1. OTP Security Features
+- **4-digit numeric codes**: Easy to enter, hard to guess
+- **10-minute expiry**: Prevents replay attacks
+- **One-time use**: OTP cleared after verification
+- **Database encryption**: OTP fields are hidden by default
+- **Rate limiting**: Consider implementing request limits
+
+#### 2. JWT Token Security
+- **Secure storage**: Tokens stored in SharedPreferences
+- **Auto-inclusion**: All API calls include Bearer token
+- **Expiration handling**: 7-day token expiry
+- **Role-based access**: Different permissions per user type
+
+### Error Handling Flow
+
+#### Backend Error Responses
+```javascript
+// Validation Errors
+{ success: false, message: "Please provide a valid email" }
+
+// User Not Found
+{ success: false, message: "User not found with this email" }
+
+// Invalid OTP
+{ success: false, message: "Invalid or expired OTP" }
+
+// Account Issues
+{ success: false, message: "Account is deactivated" }
+```
+
+#### Frontend Error Handling
+```dart
+try {
+  final result = await AuthApiService.sendOTP(email);
+  if (result['success']) {
+    // Success flow
+  } else {
+    // Handle API error
+    _showError(result['message']);
+  }
+} catch (e) {
+  // Handle network/server errors
+  _showError('Network error: $e');
+}
+```
+
+### Testing Integration
+
+#### 1. Backend Testing Scripts
+```bash
+# Run OTP integration test
+node testCompleteOTPIntegration.js
+
+# Run Flutter simulation test
+node testFlutterIntegration.js
+
+# Run basic OTP test
+node testOTP.js
+```
+
+#### 2. Manual Testing Steps
+1. **Start Backend**: `npm run dev`
+2. **Register User**: POST `/api/auth/register`
+3. **Send OTP**: POST `/api/auth/send-otp`
+4. **Check Console**: Copy OTP from server logs
+5. **Verify OTP**: POST `/api/auth/verify-otp`
+6. **Check Token**: Verify JWT token received
+
+### Production Deployment Checklist
+
+#### 1. Email Service Integration
+```javascript
+// Replace console.log with email service
+const nodemailer = require('nodemailer');
+
+// Configure email transporter
+const transporter = nodemailer.createTransporter({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Send OTP email
+await transporter.sendMail({
+  to: email,
+  subject: 'Your OTP Code',
+  text: `Your verification code is: ${otp}`
+});
+```
+
+#### 2. Environment Variables
+```env
+# Add to .env
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+
+# Security
+OTP_EXPIRY_MINUTES=10
+MAX_OTP_ATTEMPTS=5
+```
+
+#### 3. Rate Limiting
+```javascript
+const rateLimit = require('express-rate-limit');
+
+// OTP rate limiting
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 OTP requests per windowMs
+  message: 'Too many OTP requests, please try again later'
+});
+
+app.use('/api/auth/send-otp', otpLimiter);
+```
+
+### Performance Optimizations
+
+#### 1. Database Indexing
+```javascript
+// Ensure email index exists
+User.collection.createIndex({ email: 1 }, { unique: true });
+
+// OTP expiry index for cleanup
+User.collection.createIndex(
+  { otpExpires: 1 },
+  { expireAfterSeconds: 0 } // TTL index
+);
+```
+
+#### 2. Caching Strategy
+- **OTP Storage**: MongoDB with TTL index
+- **User Sessions**: Redis (future enhancement)
+- **Email Templates**: Pre-compiled templates
+
+### Monitoring & Logging
+
+#### 1. OTP Events Logging
+```javascript
+// Log OTP events
+logger.info(`OTP sent to ${email}: ${otp}`);
+logger.info(`OTP verified for ${email}`);
+logger.warn(`Failed OTP attempt for ${email}`);
+```
+
+#### 2. Metrics to Track
+- OTP generation success rate
+- OTP verification success rate
+- Average OTP verification time
+- Failed attempt patterns
+
+---
+
+## 🧪 Testing Scripts
+
+Run the included test scripts to verify integration:
+
+```bash
+# Complete integration test
+node testCompleteOTPIntegration.js
+
+# Flutter API simulation
+node testFlutterIntegration.js
+
+# Basic OTP functionality
+node testOTP.js
+```
+
+All tests validate the complete flow from database operations to API responses.
 
 ### Get All Universities
 

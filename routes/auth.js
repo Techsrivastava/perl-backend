@@ -53,4 +53,29 @@ router.put(
   authController.updatePassword
 );
 
+// @route   POST /api/auth/send-otp
+// @desc    Send OTP for email verification
+// @access  Public
+router.post(
+  '/send-otp',
+  [
+    body('email').isEmail().withMessage('Please provide a valid email'),
+  ],
+  validate,
+  authController.sendOTP
+);
+
+// @route   POST /api/auth/verify-otp
+// @desc    Verify OTP and login
+// @access  Public
+router.post(
+  '/verify-otp',
+  [
+    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits'),
+  ],
+  validate,
+  authController.verifyOTP
+);
+
 module.exports = router;

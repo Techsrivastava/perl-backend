@@ -47,6 +47,15 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Consultancy',
     },
+    // OTP fields for email verification
+    otp: {
+      type: String,
+      select: false,
+    },
+    otpExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -65,6 +74,29 @@ userSchema.pre('save', async function (next) {
 // Method to compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to generate OTP
+userSchema.methods.generateOTP = function () {
+  // Generate 4-digit OTP
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  this.otp = otp;
+  // OTP expires in 10 minutes
+  this.otpExpires = Date.now() + 10 * 60 * 1000;
+  return otp;
+};
+
+// Method to verify OTP
+userSchema.methods.verifyOTP = function (candidateOTP) {
+  if (!this.otp || !this.otpExpires) {
+    return false;
+  }
+  
+  if (Date.now() > this.otpExpires) {
+    return false; // OTP expired
+  }
+  
+  return this.otp === candidateOTP;
 };
 
 module.exports = mongoose.model('User', userSchema);
