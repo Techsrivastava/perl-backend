@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'university_management_system_secure_jwt_secret_key_2024_production_ready';
+
 // Verify JWT Token
 exports.protect = async (req, res, next) => {
   try {
@@ -20,7 +24,7 @@ exports.protect = async (req, res, next) => {
 
     try {
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
 
       // Get user from token
       req.user = await User.findById(decoded.id).select('-password');

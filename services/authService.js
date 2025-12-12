@@ -3,10 +3,18 @@ const User = require('../models/User');
 const University = require('../models/University');
 const Consultancy = require('../models/Consultancy');
 
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'university_management_system_secure_jwt_secret_key_2024_production_ready';
+
 class AuthService {
   // Generate JWT Token
   generateToken(userId) {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    return jwt.sign({ id: userId }, JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE || '7d',
     });
   }
