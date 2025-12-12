@@ -51,8 +51,9 @@ app.get('/health', (req, res) => {
 });
 
 // Database Connection
+const MONGODB_URI = 'mongodb+srv://adarsh00761_db_user:rx5cnAW82lYqryfm@cluster0.elgdwtk.mongodb.net/?appName=Cluster0';
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected Successfully'))
   .catch((err) => {
     console.error('❌ MongoDB Connection Error:', err.message);
