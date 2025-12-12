@@ -5,8 +5,13 @@ const courseSchema = new mongoose.Schema(
     universityId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'University',
-      required: true,
     },
+    universityIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'University',
+      },
+    ],
     name: {
       type: String,
       required: [true, 'Course name is required'],
@@ -135,5 +140,6 @@ const courseSchema = new mongoose.Schema(
 // Index for searching
 courseSchema.index({ name: 'text', code: 'text', department: 'text' });
 courseSchema.index({ universityId: 1 });
+courseSchema.index({ universityIds: 1 });
 
 module.exports = mongoose.model('Course', courseSchema);

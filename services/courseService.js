@@ -16,24 +16,30 @@ class CourseService {
     } = filters;
 
     const query = {};
+    const andFilters = [];
 
     // Filters
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } },
-      ];
+      andFilters.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { code: { $regex: search, $options: 'i' } },
+          { department: { $regex: search, $options: 'i' } },
+        ],
+      });
     }
 
-    if (universityId) query.universityId = universityId;
-    if (degreeType) query.degreeType = degreeType;
-    if (status) query.status = status;
-    if (department) query.department = department;
-    if (isActive !== undefined) query.isActive = isActive === 'true';
+    if (universityId) andFilters.push({ $or: [{ universityId }, { universityIds: universityId }] });
+    if (degreeType) andFilters.push({ degreeType });
+    if (status) andFilters.push({ status });
+    if (department) andFilters.push({ department });
+    if (isActive !== undefined) andFilters.push({ isActive: isActive === 'true' });
+
+    if (andFilters.length) query.$and = andFilters;
 
     const courses = await Course.find(query)
       .populate('universityId', 'name abbreviation')
+      .populate('universityIds', 'name abbreviation')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -52,7 +58,7 @@ class CourseService {
 
   // Get single course by ID
   async getCourseById(id) {
-    const course = await Course.findById(id).populate('universityId');
+    const course = await Course.findById(id).populate('universityId').populate('universityIds');
 
     if (!course) {
       throw new Error('Course not found');
@@ -71,7 +77,11 @@ class CourseService {
   async createCourse(courseData, user) {
     // Check if university owns this course
     if (user.role === 'university') {
-      courseData.universityId = user.universityId;
+      courseData.universityId = courseData.universityId || user.universityId;
+      courseData.universityIds = Array.isArray(courseData.universityIds) ? courseData.universityIds : [];
+      if (!courseData.universityIds.map(String).includes(String(user.universityId))) {
+        courseData.universityIds.push(user.universityId);
+      }
     }
 
     const course = await Course.create(courseData);
@@ -87,7 +97,14 @@ class CourseService {
     }
 
     // Check ownership
-    if (user.role === 'university' && course.universityId.toString() !== user.universityId.toString()) {
+    if (
+      user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(user.universityId)))
+      )
+    ) {
       throw new Error('Not authorized to update this course');
     }
 
@@ -108,7 +125,14 @@ class CourseService {
     }
 
     // Check ownership
-    if (user.role === 'university' && course.universityId.toString() !== user.universityId.toString()) {
+    if (
+      user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(user.universityId)))
+      )
+    ) {
       throw new Error('Not authorized to publish this course');
     }
 
@@ -127,7 +151,14 @@ class CourseService {
     }
 
     // Check ownership
-    if (user.role === 'university' && course.universityId.toString() !== user.universityId.toString()) {
+    if (
+      user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(user.universityId)))
+      )
+    ) {
       throw new Error('Not authorized to delete this course');
     }
 

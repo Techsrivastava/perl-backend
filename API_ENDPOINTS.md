@@ -2,7 +2,7 @@
 
 Quick reference for all available API endpoints.
 
-Base URL: `http://localhost:5000/api`
+Base URL: `https://perl-backend-env.up.railway.app/api`
 
 ---
 
@@ -375,7 +375,8 @@ Indexes:
 ### 4) Course (`models/Course.js`)
 
 **Relations**
-- `universityId` (ObjectId -> `University`, required)
+- `universityId` (ObjectId -> `University`, optional)
+- `universityIds[]` (ObjectId[] -> `University`, optional, supports multiple university mappings)
 
 **Fields (selected)**
 - `name` (required)
@@ -393,6 +394,10 @@ Indexes:
 Indexes:
 - Text: `name`, `code`, `department`
 - `universityId`
+- `universityIds`
+
+Notes:
+- You can create a course without a university and later map it to one or multiple universities by setting `universityIds`.
 
 ---
 

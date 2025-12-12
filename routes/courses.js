@@ -22,24 +22,32 @@ router.get('/', async (req, res, next) => {
     } = req.query;
 
     const query = {};
+    const andFilters = [];
 
     // Filters
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } },
-      ];
+      andFilters.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { code: { $regex: search, $options: 'i' } },
+          { department: { $regex: search, $options: 'i' } },
+        ],
+      });
     }
 
-    if (universityId) query.universityId = universityId;
-    if (degreeType) query.degreeType = degreeType;
-    if (status) query.status = status;
-    if (department) query.department = department;
-    if (isActive !== undefined) query.isActive = isActive === 'true';
+    if (universityId) {
+      andFilters.push({ $or: [{ universityId }, { universityIds: universityId }] });
+    }
+    if (degreeType) andFilters.push({ degreeType });
+    if (status) andFilters.push({ status });
+    if (department) andFilters.push({ department });
+    if (isActive !== undefined) andFilters.push({ isActive: isActive === 'true' });
+
+    if (andFilters.length) query.$and = andFilters;
 
     const courses = await Course.find(query)
       .populate('universityId', 'name abbreviation')
+      .populate('universityIds', 'name abbreviation')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -65,7 +73,9 @@ router.get('/', async (req, res, next) => {
 // @access  Public
 router.get('/:id', async (req, res, next) => {
   try {
-    const course = await Course.findById(req.params.id).populate('universityId');
+    const course = await Course.findById(req.params.id)
+      .populate('universityId')
+      .populate('universityIds');
 
     if (!course) {
       return res.status(404).json({
@@ -100,14 +110,17 @@ router.post(
   [
     body('name').notEmpty().withMessage('Course name is required'),
     body('code').notEmpty().withMessage('Course code is required'),
-    body('universityId').notEmpty().withMessage('University is required'),
   ],
   validate,
   async (req, res, next) => {
     try {
       // Check if university owns this course
       if (req.user.role === 'university') {
-        req.body.universityId = req.user.universityId;
+        req.body.universityId = req.body.universityId || req.user.universityId;
+        req.body.universityIds = Array.isArray(req.body.universityIds) ? req.body.universityIds : [];
+        if (!req.body.universityIds.map(String).includes(String(req.user.universityId))) {
+          req.body.universityIds.push(req.user.universityId);
+        }
       }
 
       const course = await Course.create(req.body);
@@ -138,7 +151,14 @@ router.put('/:id', protect, authorize('university', 'superadmin'), async (req, r
     }
 
     // Check ownership
-    if (req.user.role === 'university' && course.universityId.toString() !== req.user.universityId.toString()) {
+    if (
+      req.user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === req.user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(req.user.universityId)))
+      )
+    ) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this course',
@@ -175,7 +195,14 @@ router.put('/:id/publish', protect, authorize('university', 'superadmin'), async
     }
 
     // Check ownership
-    if (req.user.role === 'university' && course.universityId.toString() !== req.user.universityId.toString()) {
+    if (
+      req.user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === req.user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(req.user.universityId)))
+      )
+    ) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to publish this course',
@@ -210,7 +237,14 @@ router.delete('/:id', protect, authorize('university', 'superadmin'), async (req
     }
 
     // Check ownership
-    if (req.user.role === 'university' && course.universityId.toString() !== req.user.universityId.toString()) {
+    if (
+      req.user.role === 'university' &&
+      !(
+        (course.universityId && course.universityId.toString() === req.user.universityId.toString()) ||
+        (Array.isArray(course.universityIds) &&
+          course.universityIds.map(String).includes(String(req.user.universityId)))
+      )
+    ) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this course',
