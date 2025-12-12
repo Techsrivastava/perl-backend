@@ -94,7 +94,7 @@ Perl_Backend/
 │   ├── errorHandler.js
 │   └── validation.js
 ├── uploads/            # File uploads directory
-├── .env.example        # Environment variables template
+├── .env               # Environment variables (not committed)
 ├── .gitignore
 ├── package.json
 ├── server.js           # Entry point
@@ -125,7 +125,7 @@ Perl_Backend/
 
 3. **Create environment file**
    ```bash
-   cp .env.example .env
+   # Create .env in project root
    ```
 
 4. **Configure environment variables** (see Configuration section)
@@ -144,7 +144,7 @@ Perl_Backend/
 
 ## ⚙️ Configuration
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the project root:
 
 ```env
 # Server Configuration
@@ -554,108 +554,172 @@ try {
 
 #### 1. Backend Testing Scripts
 ```bash
-# Run OTP integration test
+# Complete integration test
 node testCompleteOTPIntegration.js
 
-# Run Flutter simulation test
+# Flutter API simulation
 node testFlutterIntegration.js
 
-# Run basic OTP test
+# Basic OTP functionality
 node testOTP.js
 ```
 
-#### 2. Manual Testing Steps
-1. **Start Backend**: `npm run dev`
-2. **Register User**: POST `/api/auth/register`
-3. **Send OTP**: POST `/api/auth/send-otp`
-4. **Check Console**: Copy OTP from server logs
-5. **Verify OTP**: POST `/api/auth/verify-otp`
-6. **Check Token**: Verify JWT token received
+All tests validate the complete flow from database operations to API responses.
 
-### Production Deployment Checklist
+### Get All Universities
 
-#### 1. Email Service Integration
-```javascript
-// Replace console.log with email service
-const nodemailer = require('nodemailer');
+**GET** `/api/universities`
 
-// Configure email transporter
-const transporter = nodemailer.createTransporter({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+Query Parameters:
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
+- `search` - Search by name or abbreviation
+- `type` - Filter by type (Government, Private, Deemed, Autonomous)
+- `isActive` - Filter by active status (true/false)
 
-// Send OTP email
-await transporter.sendMail({
-  to: email,
-  subject: 'Your OTP Code',
-  text: `Your verification code is: ${otp}`
-});
+### Get Single University
+
+**GET** `/api/universities/:id`
+
+### Create University
+
+**POST** `/api/universities`
+
+🔒 Auth Required: `university` or `superadmin`
+
+```json
+{
+  "name": "University Name",
+  "abbreviation": "UN",
+  "establishedYear": 2000,
+  "type": "Private",
+  "contactEmail": "contact@university.com",
+  "contactPhone": "+91 9876543210",
+  "address": "123 Main St",
+  "description": "University description",
+  "facilities": ["Library", "Labs", "Hostel"],
+  "bankName": "Bank Name",
+  "accountNumber": "1234567890",
+  "ifscCode": "BANK0001234",
+  "branch": "Main Branch"
+}
 ```
 
-#### 2. Environment Variables
-```env
-# Add to .env
-EMAIL_SERVICE=gmail
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
+### Update University
 
-# Security
-OTP_EXPIRY_MINUTES=10
-MAX_OTP_ATTEMPTS=5
+**PUT** `/api/universities/:id`
+
+🔒 Auth Required: `university` or `superadmin`
+
+### Delete University
+
+**DELETE** `/api/universities/:id`
+
+🔒 Auth Required: `superadmin`
+
+### Get University Statistics
+
+**GET** `/api/universities/:id/stats`
+
+🔒 Auth Required
+
+---
+
+## 👨‍💼 Consultancies API
+
+### Get All Consultancies
+
+**GET** `/api/consultancies`
+
+🔒 Auth Required: `university` or `superadmin`
+
+### Get Single Consultancy
+
+**GET** `/api/consultancies/:id`
+
+🔒 Auth Required
+
+### Create Consultancy
+
+**POST** `/api/consultancies`
+
+🔒 Auth Required: `superadmin`
+
+```json
+{
+  "name": "Consultancy Name",
+  "email": "consultant@example.com",
+  "phone": "+91 9876543210",
+  "commissionType": "percentage",
+  "commissionValue": 10,
+  "status": "Active",
+  "address": "123 Street",
+  "city": "City",
+  "state": "State"
+}
 ```
 
-#### 3. Rate Limiting
-```javascript
-const rateLimit = require('express-rate-limit');
+**Commission Types:**
+- `percentage` - Percentage of course fees
+- `flat` - Fixed amount per student
+- `oneTime` - One-time payment
 
-// OTP rate limiting
-const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 OTP requests per windowMs
-  message: 'Too many OTP requests, please try again later'
-});
+### Update Consultancy
 
-app.use('/api/auth/send-otp', otpLimiter);
+**PUT** `/api/consultancies/:id`
+
+🔒 Auth Required: `consultant` (owner) or `superadmin`
+
+### Get Consultancy Statistics
+
+**GET** `/api/consultancies/:id/stats`
+
+🔒 Auth Required
+
+---
+
+## 👨‍🎓 Students API
+
+### Get All Students
+
+**GET** `/api/students`
+
+🔒 Auth Required
+
+Query Parameters:
+- `page`, `limit` - Pagination
+- `search` - Search by name, email, phone
+- `status` - Filter by status
+- `consultancyId` - Filter by consultancy
+- `courseId` - Filter by course
+- `universityId` - Filter by university
+
+### Get Single Student
+
+**GET** `/api/students/:id`
+
+🔒 Auth Required
+
+### Create Student
+
+**POST** `/api/students`
+
+🔒 Auth Required: `consultant`, `university`, or `superadmin`
+
+```json
+{
+  "name": "Student Name",
+  "email": "student@example.com",
+  "phone": "+91 9876543210",
+  "courseId": "course_id",
+  "consultancyId": "consultancy_id",
+  "universityId": "university_id",
+  "dateOfBirth": "2000-01-01",
+  "gender": "Male",
+  "address": "123 Street",
+  "city": "City",
+  "state": "State",
 ```
-
-### Performance Optimizations
-
-#### 1. Database Indexing
-```javascript
-// Ensure email index exists
-User.collection.createIndex({ email: 1 }, { unique: true });
-
-// OTP expiry index for cleanup
-User.collection.createIndex(
-  { otpExpires: 1 },
-  { expireAfterSeconds: 0 } // TTL index
-);
-```
-
-#### 2. Caching Strategy
-- **OTP Storage**: MongoDB with TTL index
-- **User Sessions**: Redis (future enhancement)
-- **Email Templates**: Pre-compiled templates
-
-### Monitoring & Logging
-
-#### 1. OTP Events Logging
-```javascript
-// Log OTP events
-logger.info(`OTP sent to ${email}: ${otp}`);
-logger.info(`OTP verified for ${email}`);
-logger.warn(`Failed OTP attempt for ${email}`);
-```
-
-#### 2. Metrics to Track
-- OTP generation success rate
-- OTP verification success rate
-- Average OTP verification time
-- Failed attempt patterns
 
 ---
 
@@ -668,8 +732,7 @@ logger.warn(`Failed OTP attempt for ${email}`);
 npm install
 
 # 2. Setup environment file
-npm run fix-env
-# OR manually: cp .env.example .env
+# Create .env in project root
 
 # 3. Edit .env with your actual values
 # (Required: MONGODB_URI, JWT_SECRET)
@@ -689,8 +752,12 @@ npm start    # production
 
 **Required Variables:**
 ```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
-JWT_SECRET=your_super_secure_jwt_secret_here
+MONGODB_URI=mongodb://localhost:27017/university_management
+# Or MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/university_management
+
+JWT_SECRET=your_secret_key_here_change_in_production
+JWT_EXPIRE=7d
 ```
 
 **Optional Variables:**
@@ -698,7 +765,6 @@ JWT_SECRET=your_super_secure_jwt_secret_here
 PORT=5000
 NODE_ENV=development
 MAX_FILE_SIZE=5242880
-OTP_EXPIRY_MINUTES=10
 ```
 
 ### Common Issues & Solutions
@@ -708,7 +774,7 @@ OTP_EXPIRY_MINUTES=10
 **Solutions:**
 1. **Check .env file exists:**
    ```bash
-   npm run fix-env
+   # Create .env in project root
    ```
 
 2. **Verify MONGODB_URI format:**
@@ -718,8 +784,7 @@ OTP_EXPIRY_MINUTES=10
 
 3. **Manual .env setup:**
    ```bash
-   # Copy example file
-   cp .env.example .env
+   # Create .env file in project root
 
    # Edit with your values
    # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
@@ -748,12 +813,7 @@ OTP_EXPIRY_MINUTES=10
 **Important:** Never commit sensitive data to GitHub!
 
 1. **.env is already in .gitignore** ✅
-2. **Use .env.example as template:**
-   ```bash
-   # Copy to .env and fill with real values
-   cp .env.example .env
-   ```
-3. **Before pushing to GitHub:**
+2. **Before pushing to GitHub:**
    - Ensure .env is not tracked: `git status`
    - If accidentally added: `git rm --cached .env`
 
@@ -768,10 +828,6 @@ npm run troubleshoot # Full system check
 npm run fix-env      # Create/fix .env file
 npm run check-env    # Check NODE_ENV setting
 npm run prod:check   # Check production environment setup
-npm run docker:build # Build Docker image
-npm run docker:run   # Run Docker container
-npm run docker:up    # Start with docker-compose
-npm run docker:logs  # View Docker logs
 ```
 
 ### Production Deployment
@@ -1339,18 +1395,17 @@ Use tools like:
 
 ---
 
-## 📝 Notes
+## Notes
 
 - MongoDB must be running before starting the server
 - Change JWT_SECRET in production
-- Create `.env` from `.env.example`
 - Default port is 5000
 - All dates are in ISO 8601 format
 - Pagination defaults: page=1, limit=10
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Environment Setup
 1. Set `NODE_ENV=production`

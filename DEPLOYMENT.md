@@ -23,10 +23,7 @@ OTP_EXPIRY_MINUTES=10
 
 ### 1. Local Development
 ```bash
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your values
+# Create/edit .env with your values
 # MONGODB_URI=your_mongodb_uri
 # JWT_SECRET=your_jwt_secret
 
@@ -45,19 +42,7 @@ export NODE_ENV=production
 npm start
 ```
 
-### 3. Docker Deployment
-```bash
-# Build Docker image
-npm run docker:build
-
-# Run with environment file
-npm run docker:run
-
-# Or use docker-compose (includes MongoDB)
-docker-compose up -d
-```
-
-### 4. Cloud Platforms
+### 3. Cloud Platforms
 
 #### Heroku
 ```bash

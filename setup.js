@@ -8,25 +8,37 @@ console.log('🚀 University Management System - Setup Script\n');
 
 // Check if .env already exists
 const envPath = path.join(__dirname, '.env');
-const envExamplePath = path.join(__dirname, '.env.example');
 
 if (fs.existsSync(envPath)) {
   console.log('⚠️  .env file already exists. Skipping creation.');
   console.log('💡 If you want to reset, delete .env and run this script again.\n');
-} else if (fs.existsSync(envExamplePath)) {
+} else {
   try {
-    fs.copyFileSync(envExamplePath, envPath);
-    console.log('✅ Created .env file from .env.example');
+    const defaultEnv = [
+      'PORT=5000',
+      'NODE_ENV=development',
+      'MONGODB_URI=',
+      'JWT_SECRET=',
+      'JWT_EXPIRE=7d',
+      'MAX_FILE_SIZE=5242880',
+      'OTP_EXPIRY_MINUTES=10',
+      ''
+    ].join('\n');
+
+    fs.writeFileSync(envPath, defaultEnv, { encoding: 'utf8', flag: 'wx' });
+    console.log('✅ Created .env file');
     console.log('⚠️  IMPORTANT: Please edit .env file and add your actual values!\n');
     console.log('Required configurations:');
     console.log('  - MONGODB_URI: Your MongoDB connection string');
     console.log('  - JWT_SECRET: A secure random string for JWT signing');
     console.log('  - Other optional settings as needed\n');
   } catch (error) {
-    console.error('❌ Failed to create .env file:', error.message);
+    if (error && error.code === 'EEXIST') {
+      console.log('⚠️  .env file already exists. Skipping creation.');
+    } else {
+      console.error('❌ Failed to create .env file:', error.message);
+    }
   }
-} else {
-  console.error('❌ .env.example file not found. Cannot create .env file.');
 }
 
 // Check if uploads directory exists

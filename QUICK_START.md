@@ -23,8 +23,7 @@ npm install
 Create a `.env` file:
 
 ```bash
-# Copy the example file
-copy .env.example .env
+# Create .env in project root and add variables
 ```
 
 Edit `.env` and update these values:
