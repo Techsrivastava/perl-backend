@@ -20,6 +20,8 @@ const paymentRoutes = require('./routes/payments');
 const walletRoutes = require('./routes/wallets');
 const expenseRoutes = require('./routes/expenses');
 const dashboardRoutes = require('./routes/dashboard');
+const uploadRoutes = require('./routes/uploads');
+require('dotenv').config();
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -78,6 +80,7 @@ app.get('/', (req, res) => {
       agents: '/api/agents',
       payments: '/api/payments',
       wallets: '/api/wallets',
+      uploads: '/api/uploads',
       expenses: '/api/expenses',
       dashboard: '/api/dashboard',
     },
@@ -97,6 +100,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/wallets', walletRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Error Handler (must be last)
 app.use(errorHandler);
